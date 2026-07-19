@@ -1,6 +1,6 @@
 -- ========== wdfex脚本 过检测版 ==========
 -- 无服务器验证 | 全功能过检测 | 所有服务器通用
--- 整合BS飞车功能到娱乐分类
+-- 整合BS飞天功能到娱乐分类
 
 local player = game:GetService("Players").LocalPlayer
 local plrId = player.UserId
@@ -191,21 +191,21 @@ local function stopBypass()
     print("🛡️ 过检测系统已关闭")
 end
 
--- ==================== BS飞车功能 ====================
-local carFlyEnabled = false
-local carSpeed = 80
-local carBV = nil
-local carBG = nil
+-- ==================== BS飞天功能（从BS-过检测版照抄） ====================
+local flyEnabled = false
+local flySpeed = 50
+local flyBV = nil
+local flyBG = nil
 local flyConn = nil
 
-local function toggleCarFly()
-    carFlyEnabled = not carFlyEnabled
+local function toggleFly()
+    flyEnabled = not flyEnabled
     
-    if carFlyEnabled then
+    if flyEnabled then
         local char = player.Character
         if not char then
             print("❌ 没有角色")
-            carFlyEnabled = false
+            flyEnabled = false
             return
         end
         
@@ -213,72 +213,50 @@ local function toggleCarFly()
         local hum = char:FindFirstChild("Humanoid")
         if not hrp or not hum then
             print("❌ 找不到 HumanoidRootPart")
-            carFlyEnabled = false
+            flyEnabled = false
             return
         end
         
-        print("✅ 飞车开启")
+        print("✈️ 飞行开启")
         hum.PlatformStand = true
         
-        carBV = Instance.new("BodyVelocity")
-        carBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-        carBV.Velocity = Vector3.new(0, 20, 0)
-        carBV.Parent = hrp
+        flyBV = Instance.new("BodyVelocity")
+        flyBV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        flyBV.Velocity = Vector3.new(0, 20, 0)
+        flyBV.Parent = hrp
         
-        carBG = Instance.new("BodyGyro")
-        carBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-        carBG.D = 5000
-        carBG.P = 50000
-        carBG.CFrame = workspace.CurrentCamera.CFrame
-        carBG.Parent = hrp
+        flyBG = Instance.new("BodyGyro")
+        flyBG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        flyBG.D = 5000
+        flyBG.P = 50000
+        flyBG.CFrame = workspace.CurrentCamera.CFrame
+        flyBG.Parent = hrp
         
         flyConn = RunService.Heartbeat:Connect(function()
-            if not carFlyEnabled then
+            if not flyEnabled or not hrp or not hrp.Parent then
                 if flyConn then
                     flyConn:Disconnect()
                     flyConn = nil
                 end
                 return
             end
-            if not hrp or not hrp.Parent then
-                carFlyEnabled = false
-                if flyConn then
-                    flyConn:Disconnect()
-                    flyConn = nil
-                end
-                return
-            end
-            if carBV and carBG then
-                carBV.Velocity = workspace.CurrentCamera.CFrame.LookVector * carSpeed
-                carBG.CFrame = workspace.CurrentCamera.CFrame
-            end
-        end)
-        
-        task.spawn(function()
-            local targetHeight = hrp.Position.Y + 15
-            local waitCount = 0
-            while carFlyEnabled and hrp and hrp.Parent and waitCount < 30 do
-                if hrp.Position.Y < targetHeight then
-                    if carBV then
-                        carBV.Velocity = Vector3.new(0, 30, 0)
-                    end
-                else
-                    break
-                end
-                waitCount = waitCount + 1
-                task.wait(0.1)
+            if flyBV and flyBG then
+                flyBV.Velocity = workspace.CurrentCamera.CFrame.LookVector * flySpeed
+                flyBG.CFrame = workspace.CurrentCamera.CFrame
             end
         end)
         
     else
-        print("❌ 飞车关闭")
-        if carBV then carBV:Destroy(); carBV = nil end
-        if carBG then carBG:Destroy(); carBG = nil end
+        print("✈️ 飞行关闭")
+        if flyBV then flyBV:Destroy(); flyBV = nil end
+        if flyBG then flyBG:Destroy(); flyBG = nil end
         if flyConn then flyConn:Disconnect(); flyConn = nil end
         local char = player.Character
         if char then
             local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.PlatformStand = false end
+            if hum then
+                hum.PlatformStand = false
+            end
         end
     end
 end
@@ -1347,7 +1325,7 @@ do
         return aimbotPanel
     end
 
-    -- ==================== 娱乐分类（包含飞车 + 范围） ====================
+    -- ==================== 娱乐分类（包含飞天 + 范围） ====================
     local function AddCat(i)
         local cat = Instance.new("TextButton")
         cat.Name = "Cat"..i
@@ -1638,45 +1616,45 @@ do
             local posX1, posX2 = 4, page.AbsoluteSize.X * 0.52
             local rowHeight = 45
 
-            -- ========== 飞车功能 ==========
-            local carFlyBtn = addSemiTransparentButton(page, "🚗 飞车: 关", posX1, 4)
-            carFlyBtn.MouseButton1Click:Connect(function()
-                toggleCarFly()
-                carFlyBtn.Text = carFlyEnabled and "🚗 飞车: 开" or "🚗 飞车: 关"
-                carFlyBtn.BackgroundColor3 = carFlyEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
+            -- ========== ✈️ 飞天（从BS-过检测版照抄） ==========
+            local flyBtn = addSemiTransparentButton(page, "✈️ 飞天: 关", posX1, 4)
+            flyBtn.MouseButton1Click:Connect(function()
+                toggleFly()
+                flyBtn.Text = flyEnabled and "✈️ 飞天: 开" or "✈️ 飞天: 关"
+                flyBtn.BackgroundColor3 = flyEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
             end)
 
-            -- 飞车速度输入
-            local speedLabel = Instance.new("TextLabel")
-            speedLabel.Parent = page
-            speedLabel.Size = UDim2.new(0, 80, 0, 25)
-            speedLabel.Position = UDim2.new(0, 10, 0, 4 + rowHeight)
-            speedLabel.Text = "飞车速度:"
-            speedLabel.TextColor3 = Color3.fromRGB(180, 180, 210)
-            speedLabel.BackgroundTransparency = 1
-            speedLabel.TextSize = 13
-            speedLabel.Font = Enum.Font.SourceSans
+            -- 飞行速度输入
+            local flySpeedLabel = Instance.new("TextLabel")
+            flySpeedLabel.Parent = page
+            flySpeedLabel.Size = UDim2.new(0, 80, 0, 25)
+            flySpeedLabel.Position = UDim2.new(0, 10, 0, 4 + rowHeight)
+            flySpeedLabel.Text = "飞天速度:"
+            flySpeedLabel.TextColor3 = Color3.fromRGB(180, 180, 210)
+            flySpeedLabel.BackgroundTransparency = 1
+            flySpeedLabel.TextSize = 13
+            flySpeedLabel.Font = Enum.Font.SourceSans
 
-            local speedInput = Instance.new("TextBox")
-            speedInput.Parent = page
-            speedInput.Size = UDim2.new(0, 60, 0, 25)
-            speedInput.Position = UDim2.new(0, 100, 0, 4 + rowHeight)
-            speedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-            speedInput.Text = "80"
-            speedInput.PlaceholderText = "速度"
-            speedInput.TextSize = 14
-            speedInput.Font = Enum.Font.SourceSans
-            speedInput.BorderSizePixel = 0
-            local corner = Instance.new("UICorner")
-            corner.Parent = speedInput
-            corner.CornerRadius = UDim.new(0, 6)
-            speedInput.FocusLost:Connect(function()
-                local v = tonumber(speedInput.Text)
-                if v then carSpeed = math.clamp(v, 1, 200) end
+            local flySpeedInput = Instance.new("TextBox")
+            flySpeedInput.Parent = page
+            flySpeedInput.Size = UDim2.new(0, 60, 0, 25)
+            flySpeedInput.Position = UDim2.new(0, 100, 0, 4 + rowHeight)
+            flySpeedInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            flySpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+            flySpeedInput.Text = "50"
+            flySpeedInput.PlaceholderText = "速度"
+            flySpeedInput.TextSize = 14
+            flySpeedInput.Font = Enum.Font.SourceSans
+            flySpeedInput.BorderSizePixel = 0
+            local cornerFly = Instance.new("UICorner")
+            cornerFly.Parent = flySpeedInput
+            cornerFly.CornerRadius = UDim.new(0, 6)
+            flySpeedInput.FocusLost:Connect(function()
+                local v = tonumber(flySpeedInput.Text)
+                if v then flySpeed = math.clamp(v, 1, 200) end
             end)
 
-            -- ========== 范围功能 ==========
+            -- ========== 🎯 范围功能 ==========
             local rangeBtn = addSemiTransparentButton(page, "🎯 范围: 关", posX2, 4)
             rangeBtn.MouseButton1Click:Connect(function()
                 toggleRange()
@@ -1706,9 +1684,9 @@ do
             rangeInput.TextSize = 14
             rangeInput.Font = Enum.Font.SourceSans
             rangeInput.BorderSizePixel = 0
-            local corner2 = Instance.new("UICorner")
-            corner2.Parent = rangeInput
-            corner2.CornerRadius = UDim.new(0, 6)
+            local cornerRange = Instance.new("UICorner")
+            cornerRange.Parent = rangeInput
+            cornerRange.CornerRadius = UDim.new(0, 6)
             rangeInput.FocusLost:Connect(function()
                 local v = tonumber(rangeInput.Text)
                 if v then rangeSize = math.clamp(v, 1, 500) end
