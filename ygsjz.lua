@@ -1,4 +1,4 @@
--- ========== BS-过检测完整版 ==========
+-- ========== BS-过检测完整版 (修复版) ==========
 -- 仿皮脚本UI风格 | 左边分类 | 右边内容
 
 local player = game.Players.LocalPlayer
@@ -9,6 +9,21 @@ local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Camera = workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
+
+-- ==================== 修复1: 补全所有功能变量 ====================
+local speedEnabled = false
+local speedMultiplier = 1
+local originalWalkSpeed = 16
+local originalJumpPower = 50
+local flyEnabled = false
+local flySpeed = 50
+local noclipEnabled = false
+local jumpEnabled = false
+local espEnabled = false
+local rangeEnabled = false
+local rangeSize = 30
+local espHighlights = {}
+local flyBV, flyBG, flyConn = nil, nil, nil
 
 -- ==================== 过检测 ====================
 local bypassActive = false
@@ -95,7 +110,7 @@ local function startBypass()
     end)
 
     print("✅ 过检测已启动")
-end)
+end
 
 -- ==================== 反挂机 ====================
 game:GetService("Players").LocalPlayer.Idled:connect(function()
@@ -104,7 +119,7 @@ game:GetService("Players").LocalPlayer.Idled:connect(function()
     VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
 end)
 
--- ==================== 创建UI（仿皮脚本风格） ====================
+-- ==================== 创建UI ====================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = CoreGui
 screenGui.Name = "BS"
@@ -246,7 +261,6 @@ local function updateContent(tab)
     local gap = 8
     
     if tab == "⚡ 加速" then
-        -- 加速开关
         local speedBtn = Instance.new("TextButton")
         speedBtn.Parent = contentScroller
         speedBtn.Size = UDim2.new(0, 200, 0, 40)
@@ -282,7 +296,6 @@ local function updateContent(tab)
         end)
         y = y + 40 + gap
         
-        -- 倍率标签
         local label = Instance.new("TextLabel")
         label.Parent = contentScroller
         label.Size = UDim2.new(1, 0, 0, 25)
@@ -294,7 +307,6 @@ local function updateContent(tab)
         label.Font = Enum.Font.Gotham
         y = y + 25 + gap
         
-        -- 倍率按钮 1-5
         for i = 1, 5 do
             local btn = Instance.new("TextButton")
             btn.Parent = contentScroller
@@ -433,10 +445,40 @@ local function updateContent(tab)
         local corner = Instance.new("UICorner")
         corner.Parent = btn
         corner.CornerRadius = UDim.new(0, 8)
+        
+        -- 修复2: 补全穿墙的实际执行逻辑
+        local noclipConnection = nil
         btn.MouseButton1Click:Connect(function()
             noclipEnabled = not noclipEnabled
             btn.Text = noclipEnabled and "🚪 穿墙: 开" or "🚪 穿墙: 关"
             btn.BackgroundColor3 = noclipEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
+            
+            if noclipEnabled then
+                if noclipConnection then noclipConnection:Disconnect() end
+                noclipConnection = RunService.Stepped:Connect(function()
+                    local char = player.Character
+                    if char then
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
+            else
+                if noclipConnection then
+                    noclipConnection:Disconnect()
+                    noclipConnection = nil
+                end
+                local char = player.Character
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                            part.CanCollide = true
+                        end
+                    end
+                end
+            end
         end)
         
     elseif tab == "🦘 跳跃" then
@@ -453,6 +495,8 @@ local function updateContent(tab)
         local corner = Instance.new("UICorner")
         corner.Parent = btn
         corner.CornerRadius = UDim.new(0, 8)
+        
+        -- 修复3: 补全无限跳的实际执行逻辑
         btn.MouseButton1Click:Connect(function()
             jumpEnabled = not jumpEnabled
             btn.Text = jumpEnabled and "🦘 无限跳: 开" or "🦘 无限跳: 关"
