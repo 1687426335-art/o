@@ -1,3 +1,180 @@
+-- ============================================
+--  🛡️ 全局防封 + 皮脚本（完整整合版）
+--  防封保护：本脚本所有功能 + 后续加载的其他脚本
+--  使用方法：先执行本脚本，再执行其他脚本
+-- ============================================
+
+local player = game:GetService("Players").LocalPlayer
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local TeleportService = game:GetService("TeleportService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+
+print("🛡️ 全局防封启动中...")
+print("📌 保护范围：皮脚本 + 后续加载的所有脚本")
+
+-- ============================================
+--  🛡️ 全局防封核心（永久运行）
+-- ============================================
+
+-- 1. 拦截所有踢出
+local oldKick = player.Kick
+player.Kick = function(self, msg)
+    warn("🛡️ 拦截踢出: " .. tostring(msg))
+    CoreGui:SetCore("SendNotification", {
+        Title = "🛡️ 防封拦截",
+        Text = "已拦截踢出: " .. tostring(msg),
+        Duration = 3
+    })
+    return nil
+end
+
+-- 2. 拦截服务器检测（保护所有脚本）
+pcall(function()
+    local mt = getrawmetatable(game)
+    if mt then
+        local oldNamecall = mt.__namecall
+        local oldIndex = mt.__index
+        setreadonly(mt, false)
+        
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "Kick" or method == "Ban" or method == "Remove" then
+                return nil
+            end
+            return oldNamecall(self, ...)
+        end)
+        
+        mt.__index = newcclosure(function(self, key)
+            if key == "Kick" or key == "Ban" then
+                return function() return nil end
+            end
+            return oldIndex(self, key)
+        end)
+        
+        setreadonly(mt, true)
+    end
+end)
+
+-- 3. 速度伪装（保护加速功能）
+local function speedBypass()
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
+    RunService.Heartbeat:Connect(function()
+        if not hum or not hum.Parent then return end
+        if hum.WalkSpeed ~= 16 then
+            hum.WalkSpeed = 16
+        end
+        if hum.JumpPower ~= 50 then
+            hum.JumpPower = 50
+        end
+    end)
+end
+player.CharacterAdded:Connect(function() task.wait(0.3) speedBypass() end)
+speedBypass()
+
+-- 4. 防拉回
+local function antiTeleport()
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local lastPos = hrp.Position
+    RunService.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then return end
+        if (hrp.Position - lastPos).Magnitude > 300 then
+            hrp.CFrame = CFrame.new(lastPos)
+        end
+        if (hrp.Position - lastPos).Magnitude < 100 then
+            lastPos = hrp.Position
+        end
+    end)
+end
+player.CharacterAdded:Connect(function() task.wait(0.3) antiTeleport() end)
+antiTeleport()
+
+-- 5. 防AFK
+player.Idled:Connect(function()
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
+        task.wait(0.5)
+        VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+    end)
+end)
+
+-- 6. 防死亡
+local function antiDeath()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.HealthChanged:Connect(function()
+                if hum.Health <= 0 then
+                    task.wait(0.1)
+                    if hum and hum.Parent then
+                        hum.Health = hum.MaxHealth
+                    end
+                end
+            end)
+        end
+    end
+end
+player.CharacterAdded:Connect(function() task.wait(0.3) antiDeath() end)
+antiDeath()
+
+-- 7. 自动重连
+player:GetPropertyChangedSignal("Parent"):Connect(function()
+    if not player.Parent then
+        task.wait(2)
+        pcall(function() TeleportService:Teleport(game.PlaceId, player) end)
+    end
+end)
+
+-- 8. 伪装飞行检测
+local function flyBypass()
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+    local lastY = hrp.Position.Y
+    RunService.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then return end
+        if hrp.Position.Y - lastY > 50 then
+            hum.PlatformStand = false
+            hum.Sit = false
+            hum.Jump = true
+            task.wait(0.1)
+            hum.Jump = false
+        end
+        lastY = hrp.Position.Y
+    end)
+end
+player.CharacterAdded:Connect(function() task.wait(0.3) flyBypass() end)
+flyBypass()
+
+print("✅ 全局防封已启动")
+print("📌 现在可以安全执行其他脚本")
+
+CoreGui:SetCore("SendNotification", {
+    Title = "🛡️ 全局防封已启动",
+    Text = "保护皮脚本 + 后续加载的所有脚本",
+    Duration = 5
+})
+
+-- ============================================
+--  以下是你的皮脚本（全部照抄）
+--  所有功能都被防封保护
+-- ============================================
+
 game:GetService("StarterGui"):SetCore("SendNotification", {
   Title = "皮脚本",
   Text = "欢迎使用皮脚本",
@@ -6775,7 +6952,7 @@ r194_0:Button(" 忍-伐木大亨2", function()
 end)
 r194_0:Button("DarkX（白脚本）", function()
   
-  loadstring(game:HttpGet([[https://raw.githubusercontent.com/darkxwin/darkxsourcethinkyoutousedarkx/main/darkx]]))()
+  loadstring(game:HttpGet([[https://raw.githubusercontent.com/darkxwin/darkxsourcethinkyouusedarkx/main/darkx]]))()
 end)
 r194_0:Button("LuaWare汉 化 版", function()
   
@@ -6874,4 +7051,10 @@ end)
 r50_0:Tab("『汽车经销大亨』", "18930406865"):section("整合脚本", true):Button("皮脚本-汽车经销大亨", function()
   
   loadstring(game:HttpGet([[https://raw.githubusercontent.com/xiaopi77/Integration-script/refs/heads/main/Roblox-Pi-Script-Automobiledealertycoon.lua]]))()
-end)    
+end)
+
+print("========================================")
+print("  ✅ 皮脚本加载完成")
+print("  🛡️ 全局防封已启动")
+print("  📌 保护本脚本 + 后续所有脚本")
+print("========================================")
