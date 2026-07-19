@@ -380,6 +380,10 @@ local translateLoop = nil
 local translatedTexts = {}
 local speedAntiPull = nil
 
+-- ===== 新增范围变量 =====
+local rangeEnabled = false
+local rangeSize = 30
+
 local AimbotCircle = Instance.new("Frame")
 AimbotCircle.Name = "AimbotCircle"
 AimbotCircle.Parent = CoreGui
@@ -794,6 +798,56 @@ end
 local function stopSpeedAntiPull()
     if speedAntiPull then speedAntiPull:Disconnect(); speedAntiPull = nil end
 end
+
+-- ===== 新增范围功能 =====
+local function toggleRange()
+    rangeEnabled = not rangeEnabled
+    if rangeEnabled then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "🎯 范围",
+            Text = "已开启，大小: " .. rangeSize,
+            Duration = 3
+        })
+    else
+        -- 恢复所有玩家大小
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                pcall(function()
+                    local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.Size = Vector3.new(2, 2, 1)
+                        hrp.Transparency = 0
+                        hrp.Material = Enum.Material.Plastic
+                    end
+                end)
+            end
+        end
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "🎯 范围",
+            Text = "已关闭",
+            Duration = 3
+        })
+    end
+end
+
+-- ===== 范围循环 =====
+RunService.RenderStepped:Connect(function()
+    if rangeEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                pcall(function()
+                    local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.Size = Vector3.new(rangeSize, rangeSize, rangeSize * 0.5)
+                        hrp.Transparency = 0.5
+                        hrp.Material = Enum.Material.Neon
+                        hrp.CanCollide = false
+                    end
+                end)
+            end
+        end
+    end
+end)
 
 local UILibrary = {}
 do
@@ -1293,7 +1347,7 @@ do
         return aimbotPanel
     end
 
-    -- ==================== 娱乐分类（包含飞车） ====================
+    -- ==================== 娱乐分类（包含飞车 + 范围） ====================
     local function AddCat(i)
         local cat = Instance.new("TextButton")
         cat.Name = "Cat"..i
@@ -1620,6 +1674,51 @@ do
             speedInput.FocusLost:Connect(function()
                 local v = tonumber(speedInput.Text)
                 if v then carSpeed = math.clamp(v, 1, 200) end
+            end)
+
+            -- ========== 范围功能 ==========
+            local rangeBtn = addSemiTransparentButton(page, "🎯 范围: 关", posX2, 4)
+            rangeBtn.MouseButton1Click:Connect(function()
+                toggleRange()
+                rangeBtn.Text = rangeEnabled and "🎯 范围: 开" or "🎯 范围: 关"
+                rangeBtn.BackgroundColor3 = rangeEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 80)
+            end)
+
+            -- 范围大小输入
+            local rangeLabel = Instance.new("TextLabel")
+            rangeLabel.Parent = page
+            rangeLabel.Size = UDim2.new(0, 80, 0, 25)
+            rangeLabel.Position = UDim2.new(0, 10, 0, 4 + rowHeight)
+            rangeLabel.Text = "范围大小:"
+            rangeLabel.TextColor3 = Color3.fromRGB(180, 180, 210)
+            rangeLabel.BackgroundTransparency = 1
+            rangeLabel.TextSize = 13
+            rangeLabel.Font = Enum.Font.SourceSans
+
+            local rangeInput = Instance.new("TextBox")
+            rangeInput.Parent = page
+            rangeInput.Size = UDim2.new(0, 60, 0, 25)
+            rangeInput.Position = UDim2.new(0, 100, 0, 4 + rowHeight)
+            rangeInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            rangeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+            rangeInput.Text = "30"
+            rangeInput.PlaceholderText = "大小"
+            rangeInput.TextSize = 14
+            rangeInput.Font = Enum.Font.SourceSans
+            rangeInput.BorderSizePixel = 0
+            local corner2 = Instance.new("UICorner")
+            corner2.Parent = rangeInput
+            corner2.CornerRadius = UDim.new(0, 6)
+            rangeInput.FocusLost:Connect(function()
+                local v = tonumber(rangeInput.Text)
+                if v then rangeSize = math.clamp(v, 1, 500) end
+                if rangeEnabled then
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "🎯 范围",
+                        Text = "已更新大小: " .. rangeSize,
+                        Duration = 2
+                    })
+                end
             end)
 
             -- 其他娱乐功能
